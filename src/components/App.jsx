@@ -17,25 +17,28 @@ const App = () => {
   const [isShowLoadmore, setIsShowLoadmore] = useState(false);
 
   useEffect(() => {
-    if (searchQuery !== '' || page !== 1) {
-      fetchImages();
+    const fetchImages = () => {
+      setStatus('pending');
+      getImages(searchQuery, page)
+        .then((response) => {
+          setImages((prevImages) => [...prevImages, ...response.hits]);
+          setIsShowLoadmore(page < Math.ceil(response.totalHits / 12));
+          setStatus('resolved');
+        })
+        .catch((error) => {
+          console.error(error);
+          setStatus('rejected');
+        });
+    };
+
+    if (searchQuery === '' ) {
+      return;
     }
+      fetchImages();
+    
   }, [searchQuery, page]);
 
-  const fetchImages = () => {
-    setStatus('pending');
-
-    getImages(searchQuery, page)
-      .then((response) => {
-        setImages((prevImages) => [...prevImages, ...response.hits]);
-        setIsShowLoadmore(page < Math.ceil(response.totalHits / 12));
-        setStatus('resolved');
-      })
-      .catch((error) => {
-        console.error(error);
-        setStatus('rejected');
-      });
-  };
+  
 
   const createSearchQuery = (query) => {
     setSearchQuery(query);
@@ -57,21 +60,17 @@ const App = () => {
     setPage((prevPage) => prevPage + 1);
   };
 
-  let imageGallery = null;
 
-  if (images.length > 0) {
-    imageGallery = (
-      <>
-        <ImageGallery images={images} onSelect={onSelectImage} />
-        {isShowLoadmore && <Button onClick={handleLoadmore}>Load More</Button>}
-      </>
-    );
-  } else if (images.length === 0) {
-    imageGallery = (
-      <h1 className={css.appHeader}> Nothing is here, please enter something else</h1>
-    );
-  }
-
+  
+  const imageGallery = images.length > 0 ? (
+    <>
+      <ImageGallery images={images} onSelect={onSelectImage} />
+      {isShowLoadmore && <Button onClick={handleLoadmore}>Load More</Button>}
+    </>
+  ) : (
+    <h1 className={css.appHeader}> Nothing is here, please enter something else</h1>
+  );
+  
   return (
     <div>
       <SearchBar onSubmit={createSearchQuery} />
@@ -80,6 +79,6 @@ const App = () => {
       {isShowModal && <Modal onClose={toggleModal} selectedImage={selectedImage} />}
     </div>
   );
-};
-
+  
+  }
 export default App;
